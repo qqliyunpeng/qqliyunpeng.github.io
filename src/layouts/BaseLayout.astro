@@ -1,0 +1,49 @@
+---
+import Header from "../components/Header.astro";
+import ThemeScript from "../components/ThemeScript.astro";
+import { site } from "../lib/site";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonicalPath?: string;
+}
+
+const {
+  title = site.title,
+  description = site.description,
+  canonicalPath = Astro.url.pathname
+} = Astro.props;
+
+const pageTitle = title === site.title ? site.title : `${title} | ${site.title}`;
+const canonicalUrl = new URL(canonicalPath, site.url).toString();
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <ThemeScript />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" type="application/rss+xml" title={site.title} href="/rss.xml" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+  </head>
+  <body>
+    <div class="page-shell">
+      <Header />
+      <main>
+        <slot />
+      </main>
+      <footer class="site-footer">
+        <p>© {new Date().getFullYear()} qqliyunpeng. Built with Astro.</p>
+      </footer>
+    </div>
+  </body>
+</html>

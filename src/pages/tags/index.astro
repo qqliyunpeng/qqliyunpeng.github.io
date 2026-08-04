@@ -1,0 +1,24 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllTags, getPostsByTag, tagUrl } from "../../lib/posts";
+
+const tags = await getAllTags();
+const counts = await Promise.all(tags.map(async (tag) => [tag, (await getPostsByTag(tag)).length] as const));
+---
+
+<BaseLayout title="标签" description="按标签浏览 qqliyunpeng 的文章。">
+  <section class="page-heading">
+    <p class="eyebrow">Tags</p>
+    <h1>标签</h1>
+    <p>从主题入口回到相关文章。</p>
+  </section>
+  <ul class="tag-cloud">
+    {
+      counts.map(([tag, count]) => (
+        <li>
+          <a href={tagUrl(tag)}>{tag}<span>{count}</span></a>
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>
