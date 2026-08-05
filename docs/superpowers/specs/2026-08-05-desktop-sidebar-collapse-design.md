@@ -48,11 +48,13 @@ to reduce maintenance when Starlight is upgraded.
 
 ## State And Loading
 
-Store the collapsed preference in `localStorage` under a feature-specific key.
-Apply the saved state as early as practical so navigation between articles or
-page reloads does not visibly expand the sidebar before collapsing it. If
-storage is unavailable, keep the sidebar expanded and allow the control to work
-for the current page without persistence.
+Store the sidebar preference in `localStorage` under a feature-specific key.
+Collapse the sidebar by default when no saved preference exists. Once the user
+manually expands or collapses it, apply that explicit choice on later pages and
+reloads. Apply the state as early as practical so navigation does not visibly
+render the opposite state first. If storage is unavailable, default to the
+collapsed state and allow the control to work for the current page without
+persistence.
 
 ## Accessibility
 
@@ -68,6 +70,8 @@ for the current page without persistence.
 - Verify the sidebar collapses and restores on a desktop viewport.
 - Verify the main content expands and returns without horizontal overflow.
 - Verify the saved choice survives reloads and navigation between articles.
+- Verify a first visit with no saved preference starts with the sidebar
+  collapsed.
 - Verify the mobile menu continues to open and close normally.
 - Verify keyboard operation, labels, focus styling, light and dark themes, and
   reduced-motion behavior.
