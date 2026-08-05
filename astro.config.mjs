@@ -18,6 +18,7 @@ export default defineConfig({
       sidebar: [
         {
           label: "开始",
+          collapsed: true,
           items: [
             { label: "首页", slug: "index" },
             { label: "关于", slug: "about" }
@@ -25,16 +26,13 @@ export default defineConfig({
         },
         {
           label: "文章",
+          collapsed: true,
           items: [{ label: "用 Astro 开始写作", slug: "blog/hello-astro" }]
         },
         {
           label: "基本知识",
-          items: [
-            {
-              label: "全部笔记",
-              items: [{ autogenerate: { directory: "blog/basic" } }]
-            }
-          ]
+          collapsed: true,
+          items: [{ autogenerate: { directory: "blog/basic" } }]
         }
       ],
       social: [
