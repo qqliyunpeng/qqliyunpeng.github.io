@@ -45,6 +45,9 @@ export default defineConfig({
         }
       ],
       customCss: ["./src/styles/starlight.css"],
+      components: {
+        PageFrame: "./src/components/PageFrame.astro"
+      },
       disable404Route: true,
       credits: false
     }),
