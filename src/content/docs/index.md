@@ -18,8 +18,8 @@ hero:
 ## 文章入口
 
 - [用 Astro 开始写作](/blog/hello-astro/)
-- [大端和小端](/blog/basic/01.大端和小端/)
-- [优先级翻转](/blog/basic/02.优先级翻转/)
+- [大端和小端](/blog/basic/01大端和小端/)
+- [优先级翻转](/blog/basic/02优先级翻转/)
 
 ## 写作方向
 
