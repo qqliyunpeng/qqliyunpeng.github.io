@@ -6,11 +6,13 @@ const { hasSidebar } = Astro.locals.starlightRoute;
 
 <script is:inline>
   (() => {
+    let collapsed = true;
     try {
-      if (localStorage.getItem("starlight-sidebar-collapsed") === "true") {
-        document.documentElement.dataset.sidebarCollapsed = "true";
-      }
+      collapsed = localStorage.getItem("starlight-sidebar-collapsed") !== "false";
     } catch {}
+
+    if (collapsed) document.documentElement.dataset.sidebarCollapsed = "true";
+    else delete document.documentElement.dataset.sidebarCollapsed;
   })();
 </script>
 
