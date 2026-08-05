@@ -2,14 +2,15 @@
 
 ## Summary
 
-Hide the fixed top header when the reader scrolls down and restore it as soon
-as the reader scrolls up. Keep the left sidebar and document layout in their
-current positions so the page does not jump when the header changes state.
+Hide the fixed top header when the reader scrolls down and keep it hidden until
+the reader returns to the top of the page. Keep the left sidebar and document
+layout in their current positions so the page does not jump when the header
+changes state.
 
 ## Goals
 
 - Increase reading space while scrolling down through an article.
-- Restore navigation promptly when the reader scrolls upward.
+- Restore navigation when the reader returns to the page top.
 - Avoid reacting to tiny trackpad or touch-scroll movements.
 - Preserve the current sidebar position and content layout.
 - Support desktop and mobile viewports.
@@ -27,7 +28,7 @@ current positions so the page does not jump when the header changes state.
 - Track the current and previous vertical scroll positions.
 - When downward movement accumulates past `12px`, hide the header by moving it
   above the viewport.
-- When any meaningful upward movement occurs, show the header immediately.
+- Keep the header hidden during ordinary upward movement.
 - Show the header when the page returns near the top.
 - Show the header when keyboard focus enters it so its controls remain usable.
 - Reset direction tracking after each visibility change to prevent jitter.
@@ -46,7 +47,7 @@ Keep the behavior in the custom `src/components/PageFrame.astro` because that
 component owns the header wrapper. Add a root data attribute representing the
 hidden state, a passive scroll listener that calculates direction and
 threshold, and component-scoped styles that transform the header. Avoid CSS
-scroll-driven animations because upward restoration and cross-browser support
+scroll-driven animations because threshold handling and cross-browser support
 are less predictable.
 
 ## Accessibility And Safety
@@ -62,7 +63,7 @@ are less predictable.
 - Verify the header remains visible at the top.
 - Verify small downward movements below `12px` do not hide it.
 - Verify sustained downward scrolling hides it.
-- Verify upward scrolling restores it immediately.
+- Verify upward scrolling away from the page top keeps it hidden.
 - Verify the left sidebar and content do not shift vertically.
 - Verify mobile navigation still works after the header restores.
 - Verify keyboard focus restores the header.
