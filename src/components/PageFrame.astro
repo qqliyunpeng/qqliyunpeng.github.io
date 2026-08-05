@@ -4,6 +4,16 @@ import MobileMenuToggle from "@astrojs/starlight/components/MobileMenuToggle.ast
 const { hasSidebar } = Astro.locals.starlightRoute;
 ---
 
+<script is:inline>
+  (() => {
+    try {
+      if (localStorage.getItem("starlight-sidebar-collapsed") === "true") {
+        document.documentElement.dataset.sidebarCollapsed = "true";
+      }
+    } catch {}
+  })();
+</script>
+
 <div class="page sl-flex">
   <header class="header"><slot name="header" /></header>
   {
@@ -15,11 +25,47 @@ const { hasSidebar } = Astro.locals.starlightRoute;
             <slot name="sidebar" />
           </div>
         </div>
+        <button
+          class="sidebar-collapse-toggle print:hidden"
+          type="button"
+          aria-controls="starlight__sidebar"
+          aria-expanded="true"
+          aria-label="收起左侧栏"
+        >
+          <span class="sidebar-collapse-icon" aria-hidden="true">‹</span>
+        </button>
       </nav>
     )
   }
   <div class="main-frame"><slot /></div>
 </div>
+
+<script>
+  const storageKey = "starlight-sidebar-collapsed";
+  const root = document.documentElement;
+  const toggle = document.querySelector<HTMLButtonElement>(".sidebar-collapse-toggle");
+
+  const renderState = (collapsed: boolean) => {
+    if (collapsed) root.dataset.sidebarCollapsed = "true";
+    else delete root.dataset.sidebarCollapsed;
+
+    if (!toggle) return;
+    toggle.ariaExpanded = String(!collapsed);
+    toggle.ariaLabel = collapsed ? "展开左侧栏" : "收起左侧栏";
+    const icon = toggle.querySelector<HTMLElement>(".sidebar-collapse-icon");
+    if (icon) icon.textContent = collapsed ? "›" : "‹";
+  };
+
+  renderState(root.dataset.sidebarCollapsed === "true");
+
+  toggle?.addEventListener("click", () => {
+    const collapsed = root.dataset.sidebarCollapsed !== "true";
+    renderState(collapsed);
+    try {
+      localStorage.setItem(storageKey, String(collapsed));
+    } catch {}
+  });
+</script>
 
 <style>
   @layer starlight.core {
@@ -83,6 +129,10 @@ const { hasSidebar } = Astro.locals.starlightRoute;
       padding-inline-start: var(--sl-content-inline-start);
     }
 
+    .sidebar-collapse-toggle {
+      display: none;
+    }
+
     @media (min-width: 50rem) {
       :global([data-has-sidebar]) .header {
         padding-inline-end: var(--sl-nav-pad-x);
@@ -93,6 +143,56 @@ const { hasSidebar } = Astro.locals.starlightRoute;
         width: var(--sl-sidebar-width);
         background-color: var(--sl-color-bg-sidebar);
         border-inline-end: 1px solid var(--sl-color-hairline-shade);
+      }
+
+      .sidebar-pane,
+      .main-frame,
+      .sidebar-collapse-toggle {
+        transition-duration: var(--sidebar-collapse-duration);
+        transition-property: inset-inline-start, padding-inline-start, transform;
+        transition-timing-function: ease;
+      }
+
+      .sidebar-collapse-toggle {
+        position: fixed;
+        z-index: calc(var(--sl-z-index-menu) + 1);
+        inset-block-start: calc(var(--sl-nav-height) + 1rem);
+        inset-inline-start: calc(var(--sl-sidebar-width) - 0.875rem);
+        display: grid;
+        width: 1.75rem;
+        height: 1.75rem;
+        place-items: center;
+        border: 1px solid var(--sl-color-hairline-shade);
+        border-radius: 999px;
+        background: var(--sl-color-bg);
+        color: var(--sl-color-text-accent);
+        cursor: pointer;
+      }
+
+      .sidebar-collapse-toggle:focus-visible {
+        outline: 2px solid var(--sl-color-accent);
+        outline-offset: 2px;
+      }
+
+      :global(html[data-sidebar-collapsed="true"]) {
+        --sl-content-inline-start: 0rem;
+      }
+
+      :global(html[data-sidebar-collapsed="true"]) .sidebar-pane {
+        pointer-events: none;
+        transform: translateX(-100%);
+      }
+
+      :global(html[data-sidebar-collapsed="true"]) .sidebar-collapse-toggle {
+        inset-inline-start: 0.5rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sidebar-pane,
+      .main-frame,
+      .sidebar-collapse-toggle {
+        transition-duration: 0s;
       }
     }
   }
