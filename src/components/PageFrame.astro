@@ -47,6 +47,7 @@ const { hasSidebar } = Astro.locals.starlightRoute;
     createHeaderScrollState,
     updateHeaderScrollState
   } from "../scripts/header-scroll-state.js";
+  import { renderMermaidDiagrams } from "../scripts/mermaid-renderer.js";
 
   const storageKey = "starlight-sidebar-collapsed";
   const root = document.documentElement;
@@ -98,6 +99,8 @@ const { hasSidebar } = Astro.locals.starlightRoute;
     headerScrollState = updateHeaderScrollState(headerScrollState, window.scrollY, true);
     renderHeaderState();
   });
+
+  void renderMermaidDiagrams();
 </script>
 
 <style>

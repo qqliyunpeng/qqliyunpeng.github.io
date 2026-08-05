@@ -45,3 +45,16 @@
   font-size: 1rem;
   line-height: 1.75;
 }
+
+.mermaid-diagram {
+  margin-block: 1.5rem;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.mermaid-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
