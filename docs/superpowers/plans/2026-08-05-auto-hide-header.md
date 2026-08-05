@@ -271,3 +271,63 @@ git status --short
 
 Expected: 5 tests pass, the build succeeds, diff check is clean, and the Git
 working tree is clean after commits.
+
+### Task 4: Restore The Header Only At The Page Top
+
+**Files:**
+- Modify: `tests/header-scroll-state.test.mjs`
+- Modify: `src/scripts/header-scroll-state.js`
+
+- [ ] **Step 1: Change the upward-scroll expectation**
+
+Replace the upward restoration test with:
+
+```js
+test("upward movement away from the top keeps a hidden header hidden", () => {
+  const state = updateHeaderScrollState(
+    { lastY: 40, downwardDistance: 0, hidden: true },
+    39
+  );
+  assert.equal(state.hidden, true);
+});
+```
+
+- [ ] **Step 2: Run the test and verify it fails**
+
+Run: `node --test tests/header-scroll-state.test.mjs`
+
+Expected: FAIL because upward movement currently sets `hidden` to `false`.
+
+- [ ] **Step 3: Preserve visibility during ordinary upward movement**
+
+Change the state transition conditions to:
+
+```js
+  if (nextY <= topThreshold || focusWithin) {
+    return { lastY: nextY, downwardDistance: 0, hidden: false };
+  }
+
+  if (delta < 0) {
+    return { lastY: nextY, downwardDistance: 0, hidden: state.hidden };
+  }
+```
+
+- [ ] **Step 4: Run targeted and production validation**
+
+Run:
+
+```bash
+node --test tests/header-scroll-state.test.mjs
+npm run build
+git diff --check
+```
+
+Expected: all tests pass, the production build succeeds, and the diff check is
+clean.
+
+- [ ] **Step 5: Commit the behavior change**
+
+```bash
+git add src/scripts/header-scroll-state.js tests/header-scroll-state.test.mjs
+git commit -m "fix: restore header only at page top"
+```
