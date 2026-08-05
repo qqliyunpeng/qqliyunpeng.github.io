@@ -130,6 +130,18 @@ const { hasSidebar } = Astro.locals.starlightRoute;
       transform: translateY(-100%);
     }
 
+    @media (max-width: 49.999rem) {
+      :global(mobile-starlight-toc nav) {
+        transition-duration: var(--sidebar-collapse-duration);
+        transition-property: transform;
+        transition-timing-function: ease;
+      }
+
+      :global(html[data-header-hidden] mobile-starlight-toc nav) {
+        transform: translateY(calc(-1 * (var(--sl-nav-height) + var(--sl-mobile-toc-height))));
+      }
+    }
+
     :global([data-has-sidebar]) .header {
       padding-inline-end: calc(
         var(--sl-nav-gap) + var(--sl-nav-pad-x) + var(--sl-menu-button-size)
@@ -233,6 +245,7 @@ const { hasSidebar } = Astro.locals.starlightRoute;
 
     @media (prefers-reduced-motion: reduce) {
       .header,
+      :global(mobile-starlight-toc nav),
       .sidebar-pane,
       .main-frame,
       .sidebar-collapse-toggle {
