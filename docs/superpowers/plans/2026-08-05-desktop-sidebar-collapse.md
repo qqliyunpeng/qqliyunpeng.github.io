@@ -285,3 +285,63 @@ theme, print preview, and reduced-motion mode behave as specified.
 Run: `npm run build`
 
 Expected: PASS with zero Astro check errors and a successful production build.
+
+### Task 4: Default New Visitors To Collapsed
+
+**Files:**
+- Modify: `src/components/PageFrame.astro`
+
+- [ ] **Step 1: Verify the current initializer lacks the new default**
+
+Run:
+
+```bash
+rg -n 'localStorage.getItem\("starlight-sidebar-collapsed"\) === "true"' src/components/PageFrame.astro
+```
+
+Expected: one match, proving a missing storage key currently leaves the sidebar
+expanded.
+
+- [ ] **Step 2: Change the early initializer to default to collapsed**
+
+Replace the initializer body with:
+
+```astro
+<script is:inline>
+  (() => {
+    let collapsed = true;
+    try {
+      collapsed = localStorage.getItem("starlight-sidebar-collapsed") !== "false";
+    } catch {}
+
+    if (collapsed) document.documentElement.dataset.sidebarCollapsed = "true";
+    else delete document.documentElement.dataset.sidebarCollapsed;
+  })();
+</script>
+```
+
+This treats a missing key and storage failures as collapsed, while preserving a
+user's explicit stored `"false"` choice to keep the sidebar expanded.
+
+- [ ] **Step 3: Verify the new default logic is present**
+
+Run:
+
+```bash
+rg -n 'let collapsed = true|!== "false"' src/components/PageFrame.astro
+```
+
+Expected: both lines match.
+
+- [ ] **Step 4: Run the production build**
+
+Run: `npm run build`
+
+Expected: PASS with zero Astro check errors and a successful production build.
+
+- [ ] **Step 5: Commit the default-state change**
+
+```bash
+git add src/components/PageFrame.astro
+git commit -m "fix: default desktop sidebar to collapsed"
+```
