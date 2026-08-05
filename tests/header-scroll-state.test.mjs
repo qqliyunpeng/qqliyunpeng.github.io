@@ -19,12 +19,12 @@ test("twelve pixels of downward movement hide the header", () => {
   assert.equal(state.hidden, true);
 });
 
-test("upward movement restores a hidden header", () => {
+test("upward movement away from the top keeps a hidden header hidden", () => {
   const state = updateHeaderScrollState(
     { lastY: 40, downwardDistance: 0, hidden: true },
     39
   );
-  assert.equal(state.hidden, false);
+  assert.equal(state.hidden, true);
 });
 
 test("returning near the page top restores the header", () => {

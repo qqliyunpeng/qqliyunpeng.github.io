@@ -13,8 +13,12 @@ export function updateHeaderScrollState(state, currentY, focusWithin = false) {
   const nextY = Math.max(0, currentY);
   const delta = nextY - state.lastY;
 
-  if (nextY <= topThreshold || focusWithin || delta < 0) {
+  if (nextY <= topThreshold || focusWithin) {
     return { lastY: nextY, downwardDistance: 0, hidden: false };
+  }
+
+  if (delta < 0) {
+    return { lastY: nextY, downwardDistance: 0, hidden: state.hidden };
   }
 
   if (delta === 0) return { ...state, lastY: nextY };
