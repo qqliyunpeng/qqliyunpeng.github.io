@@ -1,0 +1,8 @@
+---
+import PageTitle from "@astrojs/starlight/components/PageTitle.astro";
+
+// 首页只展示文章索引，站点名已在顶栏，不再重复渲染标题。
+const isHomepage = Astro.url.pathname === "/";
+---
+
+{!isHomepage && <PageTitle />}

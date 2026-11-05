@@ -19,10 +19,7 @@ export default defineConfig({
         {
           label: "开始",
           collapsed: true,
-          items: [
-            { label: "首页", slug: "index" },
-            { label: "关于", slug: "about" }
-          ]
+          items: [{ label: "首页", link: "/" }]
         },
         {
           label: "基本知识",
@@ -39,7 +36,9 @@ export default defineConfig({
       ],
       customCss: ["./src/styles/starlight.css"],
       components: {
-        PageFrame: "./src/components/PageFrame.astro"
+        PageFrame: "./src/components/PageFrame.astro",
+        Header: "./src/components/Header.astro",
+        PageTitle: "./src/components/PageTitle.astro"
       },
       disable404Route: true,
       credits: false

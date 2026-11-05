@@ -1,0 +1,34 @@
+---
+import { getCollection } from "astro:content";
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import ArticleIndex from "../components/ArticleIndex.astro";
+import { isArticleEntry, sortArticles } from "../lib/articles.js";
+import { site } from "../lib/site";
+
+const articles = sortArticles(await getCollection("docs", isArticleEntry));
+---
+
+<StarlightPage
+  hasSidebar={false}
+  frontmatter={{
+    title: site.title,
+    description: site.description,
+    pagefind: false,
+    tableOfContents: false
+  }}
+>
+  <div id="article-index">
+    <ArticleIndex articles={articles} />
+  </div>
+</StarlightPage>
+
+<style is:global>
+  /* 首页不需要标题区，索引直接铺满内容区。 */
+  main:has(#article-index) > .content-panel:first-child {
+    display: none;
+  }
+
+  .sl-container:has(#article-index) {
+    max-width: none;
+  }
+</style>
