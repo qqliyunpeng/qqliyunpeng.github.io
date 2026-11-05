@@ -5,8 +5,8 @@ template: splash
 hero:
   tagline: "个人技术笔记"
   actions:
-    - text: "阅读文章"
-      link: "/blog/hello-astro/"
+    - text: "开始阅读"
+      link: "/blog/basic/01大端和小端/"
       icon: "right-arrow"
     - text: "关于我"
       link: "/about/"
@@ -17,7 +17,6 @@ hero:
 
 ## 文章入口
 
-- [用 Astro 开始写作](/blog/hello-astro/)
 - [大端和小端](/blog/basic/01大端和小端/)
 - [优先级翻转](/blog/basic/02优先级翻转/)
 

@@ -25,11 +25,6 @@ export default defineConfig({
           ]
         },
         {
-          label: "文章",
-          collapsed: true,
-          items: [{ label: "用 Astro 开始写作", slug: "blog/hello-astro" }]
-        },
-        {
           label: "基本知识",
           collapsed: true,
           items: [{ autogenerate: { directory: "blog/basic" } }]
