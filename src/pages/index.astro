@@ -9,7 +9,7 @@ const articles = sortArticles(await getCollection("docs", isArticleEntry));
 ---
 
 <StarlightPage
-  hasSidebar={false}
+  hasSidebar
   frontmatter={{
     title: site.title,
     description: site.description,
@@ -26,9 +26,5 @@ const articles = sortArticles(await getCollection("docs", isArticleEntry));
   /* 首页不需要标题区，索引直接铺满内容区。 */
   main:has(#article-index) > .content-panel:first-child {
     display: none;
-  }
-
-  .sl-container:has(#article-index) {
-    max-width: none;
   }
 </style>

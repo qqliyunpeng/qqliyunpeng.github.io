@@ -229,10 +229,6 @@ const { hasSidebar } = Astro.locals.starlightRoute;
         outline-offset: 2px;
       }
 
-      :global(html[data-sidebar-collapsed="true"]) {
-        --sl-content-inline-start: 0rem;
-      }
-
       :global(html[data-sidebar-collapsed="true"]) .sidebar-pane {
         pointer-events: none;
         transform: translateX(-100%);
@@ -251,6 +247,19 @@ const { hasSidebar } = Astro.locals.starlightRoute;
       .sidebar-collapse-toggle {
         transition-duration: 0s;
       }
+    }
+  }
+</style>
+
+<style is:global>
+  /*
+   * Starlight 在 Page.astro 中用未分层的 [data-has-sidebar] 规则把 --sl-content-inline-start
+   * 设为侧边栏宽度，分层（@layer starlight.core）里的收起态规则压不过它，导致收起后
+   * 正文左侧仍留出整条侧边栏的空白。这里用未分层规则把收起态改成只留一点左侧间距。
+   */
+  @media (min-width: 50rem) {
+    html[data-sidebar-collapsed="true"] {
+      --sl-content-inline-start: 2rem;
     }
   }
 </style>
