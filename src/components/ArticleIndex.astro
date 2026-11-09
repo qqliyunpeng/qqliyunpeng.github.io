@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from "astro:content";
+import { excerptFromBody } from "../lib/articles.js";
 
 interface Props {
   articles: CollectionEntry<"docs">[];
@@ -13,160 +14,204 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   day: "2-digit"
 });
 
+/** 仿 CSDN 列表：更新日期用点分隔（2026.08.04）。 */
 function formatDate(date: Date) {
-  return dateFormatter.format(date).replaceAll("/", "-");
+  return dateFormatter.format(date).replaceAll("/", ".");
+}
+
+/** 优先显示 lastUpdated，缺失时退回 pubDate；Starlight 的 lastUpdated 可能是 boolean。 */
+function updatedAt(data: CollectionEntry<"docs">["data"]) {
+  const { lastUpdated, pubDate } = data;
+  if (lastUpdated instanceof Date) return lastUpdated;
+  return pubDate instanceof Date ? pubDate : undefined;
 }
 ---
 
-<ul class="article-index">
+{/* not-content 是 Starlight 的逃生舱：不加的话 .sl-markdown-content 的 li+li 外边距、
+    相邻元素外边距会漏进来，把行间距和 footer 对齐搞歪。 */}
+<div class="not-content">
+  <ul class="article-list">
   {
-    articles.map((article, index) => (
-      <li>
-        <a class="article" href={`/${article.id}/`}>
-          <span class="article-number" aria-hidden="true">
-            {String(index + 1).padStart(2, "0")}
-          </span>
-          <span class="article-title">{article.data.title}</span>
-          {article.data.description && (
-            <span class="article-description">{article.data.description}</span>
-          )}
-          <span class="article-meta">
-            {article.data.pubDate && (
-              <time datetime={article.data.pubDate.toISOString()}>{formatDate(article.data.pubDate)}</time>
-            )}
-            {article.data.tags.map((tag) => <span class="article-tag">{tag}</span>)}
-          </span>
-          <span class="article-arrow" aria-hidden="true">
-            →
-          </span>
-        </a>
-      </li>
-    ))
+    articles.map((article) => {
+      const updated = updatedAt(article.data);
+      const tags = article.data.tags;
+      // 摘要取正文开头，正文为空时才退回 frontmatter 的 description。
+      const excerpt = excerptFromBody(article.body) || article.data.description;
+
+      return (
+        <li class="article-item">
+          <a class="article-link" href={`/${article.id}/`}>
+            <div class="article-body">
+              <h4 class="article-title">{article.data.title}</h4>
+              {excerpt && (
+                <p class="article-excerpt">{excerpt}</p>
+              )}
+              <div class="article-footer">
+                <div class="article-footer-left">
+                  <span class="article-badge">原创</span>
+                  {updated && (
+                    <time class="article-updated" datetime={updated.toISOString()}>
+                      博文更新于 {formatDate(updated)}
+                    </time>
+                  )}
+                </div>
+                {tags.length > 0 && (
+                  <div class="article-footer-right">
+                    {tags.map((tag) => (
+                      <span class="article-tag">{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </a>
+        </li>
+      );
+    })
   }
-</ul>
+  </ul>
+</div>
 
 <style>
-  .article-index {
+  /* 列表配色集中在变量里，暗色主题只需覆盖这一组。 */
+  .article-list {
+    --article-title: #222226;
+    --article-title-hover: #fc5531;
+    --article-text: #555666;
+    --article-badge-text: #e33e33;
+    --article-badge-bg: rgba(227, 62, 51, 0.1);
+    --article-tag-bg: rgba(0, 0, 0, 0.04);
+    --article-hairline: #f0f0f2;
+
     list-style: none;
     margin: 0;
     padding: 0;
-    border-bottom: 1px solid var(--sl-color-hairline);
   }
 
-  .article-index li + li {
-    border-top: 1px solid var(--sl-color-hairline);
+  :global(:root[data-theme="dark"]) .article-list {
+    --article-title: var(--sl-color-white);
+    --article-title-hover: #ff7a5c;
+    --article-text: var(--sl-color-gray-2);
+    --article-badge-text: #ff8a80;
+    --article-badge-bg: rgba(227, 62, 51, 0.18);
+    --article-tag-bg: rgba(255, 255, 255, 0.06);
+    --article-hairline: var(--sl-color-hairline);
   }
 
-  .article {
-    display: grid;
-    grid-template-columns: 2.5rem auto minmax(0, 1fr) auto 2rem;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.5rem 0.85rem;
-    margin-inline: -0.85rem;
+  .article-link {
+    display: flex;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--article-hairline);
     color: inherit;
     text-decoration: none;
-    border-radius: 0.5rem;
-    transition: background-color 150ms ease;
   }
 
-  .article:hover {
-    background: color-mix(in oklab, var(--sl-color-accent) 7%, transparent);
-  }
-
-  .article-number {
-    align-self: center;
-    font-size: var(--sl-text-xs);
-    font-variant-numeric: tabular-nums;
-    color: var(--sl-color-gray-3);
-  }
-
-  .article-title {
-    font-size: var(--sl-text-base);
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--sl-color-white);
-    white-space: nowrap;
-  }
-
-  .article:hover .article-title {
-    color: var(--sl-color-accent-high);
-  }
-
-  :global([data-theme="dark"]) .article:hover .article-title {
-    color: var(--sl-color-accent);
-  }
-
-  .article-description {
+  .article-body {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
     min-width: 0;
-    font-size: var(--sl-text-sm);
-    line-height: 1.4;
-    color: var(--sl-color-gray-2);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
-  .article-meta {
+  /* 标题单行截断，悬停变 CSDN 橙 */
+  .article-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 24px;
+    color: var(--article-title);
+    word-break: break-word;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    transition: color 150ms ease;
+  }
+
+  .article-link:hover .article-title {
+    color: var(--article-title-hover);
+  }
+
+  /* 摘要固定两行 */
+  .article-excerpt {
+    margin: 4px 0 0;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 19px;
+    color: var(--article-text);
+    word-break: break-word;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .article-footer {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    font-size: var(--sl-text-xs);
-    font-variant-numeric: tabular-nums;
-    color: var(--sl-color-gray-3);
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .article-footer-left {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .article-badge {
+    flex: none;
+    box-sizing: border-box;
+    width: 34px;
+    height: 20px;
+    margin-right: 8px;
+    font-size: 12px;
+    line-height: 20px;
+    text-align: center;
+    border-radius: 2px;
+    color: var(--article-badge-text);
+    background: var(--article-badge-bg);
+  }
+
+  .article-updated {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--article-text);
+    white-space: nowrap;
+  }
+
+  .article-footer-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
   }
 
   .article-tag {
-    padding: 0 0.45rem;
-    font-size: var(--sl-text-2xs);
-    line-height: 1.6;
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 999px;
+    padding: 0 6px;
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+    border-radius: 2px;
+    color: var(--article-text);
+    background: var(--article-tag-bg);
   }
 
-  .article-arrow {
-    justify-self: end;
-    font-size: var(--sl-text-sm);
-    color: var(--sl-color-gray-3);
-    opacity: 0;
-    transition: opacity 150ms ease, transform 150ms ease;
-  }
-
-  .article:hover .article-arrow {
-    opacity: 1;
-    transform: translateX(0.15rem);
-  }
-
-  /* 窄屏才隐藏简介，桌面/平板保持标题与简介同一行 */
   @media (max-width: 44rem) {
-    .article-description {
-      display: none;
-    }
-
-    .article {
-      grid-template-columns: 2rem minmax(0, 1fr) auto;
-      gap: 0.85rem;
-      padding-inline: 0.6rem;
-      margin-inline: -0.6rem;
+    .article-link {
+      padding: 16px 0;
     }
 
     .article-title {
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .article-tag {
-      display: none;
-    }
-
-    .article-arrow {
-      display: none;
+      font-size: 16px;
+      line-height: 22px;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .article,
-    .article-arrow {
+    .article-title {
       transition: none;
     }
   }
