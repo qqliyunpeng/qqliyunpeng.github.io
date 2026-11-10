@@ -38,7 +38,8 @@ export default defineConfig({
       components: {
         PageFrame: "./src/components/PageFrame.astro",
         Header: "./src/components/Header.astro",
-        PageTitle: "./src/components/PageTitle.astro"
+        PageTitle: "./src/components/PageTitle.astro",
+        Pagination: "./src/components/Pagination.astro"
       },
       disable404Route: true,
       credits: false
