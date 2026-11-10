@@ -29,21 +29,10 @@ const articles = sortArticles(await getCollection("docs", isArticleEntry));
   }
 
   /*
-   * 首页列表满屏：左右都贴到浏览器边沿，不做 60rem 居中。
-   * 侧边栏收起时把 main-frame 的左侧内缩也归零，不然会留 2rem；
-   * 展开时保留侧边栏占的宽度，否则正文会钻到侧边栏底下。
+   * 首页列表比正文宽一点（72rem = 1152px），列表行更好读。
+   * 只写 max-width，不用 --sl-content-width，所以正文仍保持 960px。
    */
-  html[data-sidebar-collapsed="true"]:has(#article-index) {
-    --sl-content-inline-start: 0rem;
-  }
-
-  @media (min-width: 50rem) {
-    main:has(#article-index) .content-panel {
-      padding-inline: 0;
-    }
-
-    main:has(#article-index) .sl-container {
-      max-width: 100%;
-    }
+  main:has(#article-index) .sl-container {
+    max-width: 72rem;
   }
 </style>

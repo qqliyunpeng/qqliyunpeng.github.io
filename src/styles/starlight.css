@@ -7,7 +7,7 @@
   --sl-color-bg-nav: #ffffff;
   --sl-color-bg-sidebar: #f8fafc;
   --sl-color-hairline-light: #d9e0ea;
-  /* 仿 fpga4fun：中间正文栏宽度 960px */
+  /* 正文栏 960px，与 fpga4fun 实测宽度一致 */
   --sl-content-width: 60rem;
   --sidebar-collapse-duration: 180ms;
 }
