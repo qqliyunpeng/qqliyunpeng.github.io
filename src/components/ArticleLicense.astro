@@ -1,0 +1,73 @@
+---
+/**
+ * 文章标题下方的版权声明。日期全部取自 frontmatter，未来新文章无需手工维护：
+ * 原创时间 = pubDate，更新时间 = lastUpdated（缺失时退回 pubDate），版本号 = 更新时间 YYYYMMDD。
+ * 两个日期都缺失时不渲染，避免出现空值或 Invalid Date。
+ */
+interface Props {
+  pubDate?: Date;
+  lastUpdated?: Date;
+}
+
+const { pubDate, lastUpdated } = Astro.props;
+
+const toDay = (date: Date) => date.toISOString().slice(0, 10);
+
+const updateDate = lastUpdated ?? pubDate;
+const originalDay = pubDate && toDay(pubDate);
+const updatedDay = updateDate && toDay(updateDate);
+const version = updateDate && toDay(updateDate).replaceAll("-", "");
+---
+
+{
+  originalDay && updatedDay && version && (
+    <aside class="article-license" aria-label="版权声明">
+      <p>作者: qqliyunpeng@sina.cn</p>
+      <p>版本号: {version}</p>
+      <p>
+        更新时间: &lt;{updatedDay}&gt;
+      </p>
+      <p>
+        原创时间: &lt;{originalDay}&gt;
+      </p>
+      <p>
+        版权: 本文采用以下协议进行授权, 自由转载 - 非商用 - 非衍生 - 保持署名 |{" "}
+        <a href="https://creativecommons.org/licenses/by-nc-nd/3.0/" rel="license">
+          Creative Commons BY-NC-ND 3.0
+        </a>
+        ,转载请注明作者及出处.
+      </p>
+    </aside>
+  )
+}
+
+<style>
+  @layer starlight.core {
+    .article-license {
+      margin-top: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.9rem;
+      border-bottom: 1px solid var(--sl-color-hairline);
+      font-size: var(--sl-text-xs);
+      line-height: 1.7;
+      color: var(--sl-color-gray-3);
+      overflow-wrap: anywhere;
+    }
+
+    .article-license p {
+      margin: 0;
+    }
+
+    .article-license a {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: var(--sl-color-hairline);
+      text-underline-offset: 0.2em;
+    }
+
+    .article-license a:hover {
+      color: var(--sl-color-white);
+      text-decoration-color: currentColor;
+    }
+  }
+</style>

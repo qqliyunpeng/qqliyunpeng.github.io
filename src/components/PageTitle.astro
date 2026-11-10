@@ -1,8 +1,21 @@
 ---
 import PageTitle from "@astrojs/starlight/components/PageTitle.astro";
+import ArticleLicense from "./ArticleLicense.astro";
 
 // 首页只展示文章索引，站点名已在顶栏，不再重复渲染标题。
 const isHomepage = Astro.url.pathname === "/";
+
+// 只有 blog 目录下的文章才在标题下方带版权声明。
+const { entry, lastUpdated } = Astro.locals.starlightRoute;
+const isArticle = entry.id.startsWith("blog/");
+const pubDate = entry.data.pubDate;
 ---
 
-{!isHomepage && <PageTitle />}
+{
+  !isHomepage && (
+    <>
+      <PageTitle />
+      {isArticle && <ArticleLicense pubDate={pubDate} lastUpdated={lastUpdated} />}
+    </>
+  )
+}
