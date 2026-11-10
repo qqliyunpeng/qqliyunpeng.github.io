@@ -13,15 +13,6 @@ const { hasSidebar } = Astro.locals.starlightRoute;
 
     if (collapsed) document.documentElement.dataset.sidebarCollapsed = "true";
     else delete document.documentElement.dataset.sidebarCollapsed;
-
-    // 右侧目录默认展开，只有显式记住过折叠状态才收起（避免首屏闪一下）
-    let tocCollapsed = false;
-    try {
-      tocCollapsed = localStorage.getItem("starlight-toc-collapsed") === "true";
-    } catch {}
-
-    if (tocCollapsed) document.documentElement.dataset.tocCollapsed = "true";
-    else delete document.documentElement.dataset.tocCollapsed;
   })();
 </script>
 
@@ -83,10 +74,8 @@ const { hasSidebar } = Astro.locals.starlightRoute;
     } catch {}
   });
 
-  const tocStorageKey = "starlight-toc-collapsed";
-
-  // “本页内容”是 Starlight TableOfContents 里的 h2，我们不动它的结构，
-  // 只在行尾挂一颗箭头，把目录列表折成手风琴。
+  // “本页内容”是 Starlight TableOfContents 里的 h2。桌面端把它改造成和手机端
+  // 一样的一行胶囊：点整行才浮层展开目录，收起时随顶栏一起滑出视口。
   const tocHeading = document.querySelector<HTMLElement>(
     ".right-sidebar-panel #starlight__on-this-page"
   );
@@ -98,7 +87,7 @@ const { hasSidebar } = Astro.locals.starlightRoute;
     tocList.id = "starlight-toc-items";
     tocHeading.classList.add("toc-heading");
 
-    // 标题文字包一层，折叠时只留图标（用视觉隐藏而不是 display:none，保住 nav 的可访问名）
+    // 标题文字包一层：胶囊里显示「本页内容」，同时保住 nav 的可访问名
     const label = document.createElement("span");
     label.className = "toc-heading-label";
     label.append(...tocHeading.childNodes);
@@ -108,29 +97,44 @@ const { hasSidebar } = Astro.locals.starlightRoute;
     tocToggle.type = "button";
     tocToggle.className = "toc-toggle";
     tocToggle.setAttribute("aria-controls", tocList.id);
-    // 图标用 Starlight 自带的 bars（恒显示），折叠状态靠颜色区分
+    // 图标和手机端一致：right-caret，展开时转 90° 朝下
     tocToggle.innerHTML =
-      '<svg class="toc-toggle-icon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 8h18a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2Zm18 8H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Zm0-5H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Z"/></svg>';
+      '<svg class="toc-toggle-icon" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg>';
     tocHeading.append(tocToggle);
   }
 
-  const renderTocState = (collapsed: boolean) => {
-    if (collapsed) root.dataset.tocCollapsed = "true";
-    else delete root.dataset.tocCollapsed;
+  // 和手机端一样每次进来都是收起的单行胶囊，展开状态只在本次会话内保留
+  let tocOpen = false;
+
+  const renderTocState = (open: boolean) => {
+    tocOpen = open;
+    root.toggleAttribute("data-toc-open", open);
 
     if (!tocToggle) return;
-    tocToggle.ariaExpanded = String(!collapsed);
-    tocToggle.ariaLabel = collapsed ? "展开目录" : "收起目录";
+    tocToggle.ariaExpanded = String(open);
+    tocToggle.ariaLabel = open ? "收起目录" : "展开目录";
   };
 
-  renderTocState(root.dataset.tocCollapsed === "true");
+  renderTocState(false);
 
-  tocToggle?.addEventListener("click", () => {
-    const collapsed = root.dataset.tocCollapsed !== "true";
-    renderTocState(collapsed);
-    try {
-      localStorage.setItem(tocStorageKey, String(collapsed));
-    } catch {}
+  tocToggle?.addEventListener("click", () => renderTocState(!tocOpen));
+
+  // 和手机端一样：点目录项、点胶囊外面、按 Esc 都收起浮层
+  tocList?.addEventListener("click", (event) => {
+    if (event.target instanceof Element && event.target.closest("a")) renderTocState(false);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!tocOpen) return;
+    if (event.target instanceof Node && tocHeading?.contains(event.target)) return;
+    renderTocState(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !tocOpen) return;
+    const hadFocus = tocHeading?.contains(document.activeElement) ?? false;
+    renderTocState(false);
+    if (hadFocus) tocToggle?.focus();
   });
 
   const header = document.querySelector<HTMLElement>(".header");
@@ -189,7 +193,8 @@ const { hasSidebar } = Astro.locals.starlightRoute;
       transform: translateY(-100%);
     }
 
-    @media (max-width: 49.999rem) {
+    /* 手机端目录条在 72rem 以下都会显示，隐藏规则跟着 Starlight 的 lg 断点走 */
+    @media (max-width: 71.999rem) {
       :global(mobile-starlight-toc nav) {
         transition-duration: var(--sidebar-collapse-duration);
         transition-property: transform;
@@ -361,45 +366,62 @@ const { hasSidebar } = Astro.locals.starlightRoute;
   }
 
   /*
-   * 右侧目录折叠：脚本往 Starlight 的 TOC 标题行里注入一颗三横线图标，
-   * 标题文字只留给读屏；折叠只收起列表，右栏宽度不变，正文不会跳动。
+   * 桌面端右侧目录对齐手机端：一行「本页内容 ⌄」胶囊，点开才把目录浮层展开，
+   * 收起状态下随顶栏一起滑出视口。右栏宽度始终保留，正文不会因为开合而跳动。
    */
   .toc-heading {
+    position: relative;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding-block: 0.5rem;
+    padding-inline: 0.75rem 0.5rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background-color: var(--sl-color-black);
+    color: var(--sl-color-white);
+    font-size: var(--sl-text-xs);
+    font-weight: 400;
+    line-height: 1;
+    transition-duration: var(--sidebar-collapse-duration);
+    transition-property: border-color, color;
+    transition-timing-function: ease;
+  }
+
+  .toc-heading-label {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* 整行都能点：按钮铺满胶囊，箭头靠右，可聚焦元素只留一个 */
+  .toc-toggle {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-  }
-
-  /* 标题文字只留给读屏（nav 的可访问名），界面上一律只显示三横线图标 */
-  .toc-heading-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .toc-toggle {
-    display: grid;
-    flex: none;
-    width: 1.25rem;
-    height: 1.25rem;
-    margin-inline-start: 0.5rem;
-    place-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    height: 100%;
     padding: 0;
+    padding-inline-end: 0.5rem;
     border: 0;
-    border-radius: 0.25rem;
+    border-radius: inherit;
     background: transparent;
     color: var(--sl-color-gray-3);
-    font-size: 0.95rem;
-    line-height: 1;
     cursor: pointer;
   }
 
-  .toc-toggle:hover {
+  .toc-heading:hover {
     color: var(--sl-color-white);
-    background: var(--sl-color-gray-6);
+    border-color: var(--sl-color-gray-2);
+  }
+
+  .toc-heading:hover .toc-toggle {
+    color: var(--sl-color-white);
   }
 
   .toc-toggle:focus-visible {
@@ -409,15 +431,73 @@ const { hasSidebar } = Astro.locals.starlightRoute;
 
   .toc-toggle-icon {
     display: block;
+    transition-duration: var(--sidebar-collapse-duration);
+    transition-property: transform;
+    transition-timing-function: ease;
   }
 
-  /* 图标方向不变，折叠后用强调色提示“目录已收起” */
-  html[data-toc-collapsed="true"] .toc-toggle,
-  html[data-toc-collapsed="true"] .toc-toggle:hover {
-    color: var(--sl-color-text-accent);
+  html[data-toc-open] .toc-heading {
+    border-color: var(--sl-color-accent);
   }
 
-  html[data-toc-collapsed="true"] .right-sidebar-panel starlight-toc ul {
-    display: none;
+  html[data-toc-open] .toc-toggle-icon {
+    transform: rotateZ(90deg);
+  }
+
+  @media (min-width: 72rem) {
+    /* 原本是整屏固定的长栏，现在收成一颗随页面吸附的胶囊 */
+    .right-sidebar {
+      height: auto;
+      overflow: visible;
+      border-inline-start: 0;
+      transition-duration: var(--sidebar-collapse-duration);
+      transition-property: transform, visibility;
+      transition-timing-function: ease;
+    }
+
+    /* 顶栏藏起来时展开态只跟着上移，收起态则整颗滑出视口 */
+    html[data-header-hidden] .right-sidebar {
+      transform: translateY(calc(-1 * var(--sl-nav-height)));
+    }
+
+    html[data-header-hidden]:not([data-toc-open]) .right-sidebar {
+      transform: translateY(calc(-100% - var(--sl-nav-height)));
+      visibility: hidden;
+    }
+
+    /* 展开后的目录浮层，观感对齐手机端下拉 */
+    .right-sidebar-panel starlight-toc {
+      position: relative;
+      display: block;
+    }
+
+    .right-sidebar-panel starlight-toc > nav > ul {
+      display: none;
+    }
+
+    html[data-toc-open] .right-sidebar-panel starlight-toc > nav > ul {
+      position: absolute;
+      z-index: calc(var(--sl-z-index-toc) + 1);
+      inset-inline: 0;
+      inset-block-start: calc(100% + 0.25rem);
+      display: block;
+      max-height: calc(100vh - var(--sl-nav-height) - 5.5rem);
+      margin: 0;
+      padding: 0.5rem 0.75rem;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      border: 1px solid var(--sl-color-gray-6);
+      border-radius: 0.5rem;
+      background-color: var(--sl-color-black);
+      box-shadow: var(--sl-shadow-md);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .right-sidebar,
+    .toc-heading,
+    .toc-toggle-icon {
+      transition-duration: 0s;
+    }
   }
 </style>
