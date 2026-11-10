@@ -229,12 +229,12 @@ const { hasSidebar } = Astro.locals.starlightRoute;
         outline-offset: 2px;
       }
 
-      :global(html[data-sidebar-collapsed="true"]) .sidebar-pane {
+      html[data-sidebar-collapsed="true"] .sidebar-pane {
         pointer-events: none;
         transform: translateX(-100%);
       }
 
-      :global(html[data-sidebar-collapsed="true"]) .sidebar-collapse-toggle {
+      html[data-sidebar-collapsed="true"] .sidebar-collapse-toggle {
         inset-inline-start: 0.5rem;
       }
     }
@@ -258,8 +258,46 @@ const { hasSidebar } = Astro.locals.starlightRoute;
    * 正文左侧仍留出整条侧边栏的空白。这里用未分层规则把收起态改成只留一点左侧间距。
    */
   @media (min-width: 50rem) {
-    html[data-sidebar-collapsed="true"] {
-      --sl-content-inline-start: 2rem;
+    /*
+     * 仿 fpga4fun：整站收进一个居中的「有效区域」，两侧留等宽空白。
+     * 顶栏本身仍是满宽（背景和分隔线不断），只把内容缩进到带上。
+     */
+    :root {
+      --site-max: 1600px;
+      --band-offset: max(0px, calc((100vw - var(--site-max)) / 2));
+    }
+
+    header.header {
+      padding-inline: calc(var(--band-offset) + var(--sl-nav-pad-x));
+    }
+
+    .sidebar-pane {
+      inset-inline-start: var(--band-offset);
+    }
+
+    .sidebar-collapse-toggle {
+      inset-inline-start: calc(var(--band-offset) + var(--sl-sidebar-width) - 0.875rem);
+    }
+
+    /* 收起时整条侧栏要移到屏幕外，用多出来的一段 band 偏移补上，避免位置跳变 */
+    html[data-sidebar-collapsed="true"] .sidebar-pane {
+      transform: translateX(calc(-100% - var(--band-offset)));
+    }
+
+    html[data-sidebar-collapsed="true"] .sidebar-collapse-toggle {
+      inset-inline-start: calc(var(--band-offset) + 0.5rem);
+    }
+
+    html[data-has-sidebar] {
+      --sl-content-inline-start: calc(var(--sl-sidebar-width) + var(--band-offset));
+    }
+
+    .main-frame {
+      padding-inline-end: var(--band-offset);
+    }
+
+    html[data-has-sidebar][data-sidebar-collapsed="true"] {
+      --sl-content-inline-start: calc(2rem + var(--band-offset));
     }
   }
 </style>
