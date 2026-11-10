@@ -48,6 +48,11 @@ const { hasSidebar } = Astro.locals.starlightRoute;
     updateHeaderScrollState
   } from "../scripts/header-scroll-state.js";
   import { renderMermaidDiagrams } from "../scripts/mermaid-renderer.js";
+  import {
+    saveScrollPosition,
+    scrollMemoryKey,
+    takeScrollPosition
+  } from "../scripts/scroll-memory.js";
 
   const storageKey = "starlight-sidebar-collapsed";
   const root = document.documentElement;
@@ -163,7 +168,53 @@ const { hasSidebar } = Astro.locals.starlightRoute;
     renderHeaderState();
   });
 
-  void renderMermaidDiagrams();
+  // 刷新后要停在刷新前的位置：URL 里的 #锚点 是上次点右侧目录留下的，
+  // Firefox / Safari 刷新时会重新按 hash 定位，把用户后来滚到的位置丢掉。
+  // 这里按路径记一份离开时的滚动位置，只在刷新 / 前进后退时恢复；
+  // 用户一旦手动滚动就放手，不再干预。
+  const scrollKey = scrollMemoryKey(window.location.pathname, window.location.search);
+  const [navigationEntry] = performance.getEntriesByType("navigation");
+  const navigationType =
+    navigationEntry instanceof PerformanceNavigationTiming ? navigationEntry.type : "navigate";
+  const storedScrollTop = takeScrollPosition(window.sessionStorage, scrollKey);
+  const restoredScrollTop =
+    navigationType === "reload" || navigationType === "back_forward" ? storedScrollTop : null;
+
+  window.addEventListener("pagehide", () => {
+    saveScrollPosition(window.sessionStorage, scrollKey, window.scrollY);
+  });
+
+  let userMovedAway = false;
+  for (const eventName of ["wheel", "touchstart", "keydown"]) {
+    window.addEventListener(
+      eventName,
+      () => {
+        userMovedAway = true;
+      },
+      { passive: true, once: true }
+    );
+  }
+
+  const applyRestoredScroll = () => {
+    if (restoredScrollTop === null || userMovedAway) return;
+    window.scrollTo({ top: restoredScrollTop, behavior: "auto" });
+  };
+
+  applyRestoredScroll();
+
+  // 浏览器可能在我们之后才按 hash 滚一次，所以布局稳定前多对齐几轮
+  const settleRestoredScroll = () => {
+    applyRestoredScroll();
+    requestAnimationFrame(() => {
+      applyRestoredScroll();
+      requestAnimationFrame(applyRestoredScroll);
+    });
+    // mermaid 渲染会改变正文高度，渲染完再对齐一次
+    void renderMermaidDiagrams().then(applyRestoredScroll);
+  };
+
+  if (document.readyState === "complete") settleRestoredScroll();
+  else window.addEventListener("load", settleRestoredScroll, { once: true });
 </script>
 
 <style>
