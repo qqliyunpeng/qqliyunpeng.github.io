@@ -11,7 +11,6 @@ page reloads.
 
 - Let desktop readers hide and restore the complete left sidebar.
 - Keep the control visually attached to the sidebar edge.
-- Expand the main content into the space released by the sidebar.
 - Remember the reader's choice in browser-local storage.
 - Preserve Starlight's existing mobile navigation behavior.
 
@@ -68,7 +67,8 @@ persistence.
 ## Validation
 
 - Verify the sidebar collapses and restores on a desktop viewport.
-- Verify the main content expands and returns without horizontal overflow.
+- Verify the article column keeps the exact same offset and width in both
+  states, with no horizontal overflow.
 - Verify the saved choice survives reloads and navigation between articles.
 - Verify a first visit with no saved preference starts with the sidebar
   collapsed.
@@ -76,3 +76,21 @@ persistence.
 - Verify keyboard operation, labels, focus styling, light and dark themes, and
   reduced-motion behavior.
 - Run the project's targeted Astro check and production build.
+
+## Revision 2026-11-11: content no longer reflows
+
+Earlier revisions let the main reading column expand into the space released by
+collapsing the sidebar. That made the text jump sideways on every toggle, which
+is distracting while reading. From the desktop breakpoint up to `72rem` the
+column now keeps a constant `--sl-content-inline-start` (sidebar width plus band
+offset) in both states, so collapsing only slides the sidebar out of the
+viewport; the left gutter stays reserved as whitespace.
+
+Above the desktop breakpoint but below `72rem` Starlight hides the right table of
+contents, so a reserved left gutter would be pure whitespace on both sides. There
+the two panes are linked: the article gutter drops to the band offset in every
+state, the custom chevron control is hidden, and the sidebar is opened by
+Starlight's mobile hamburger button (the floating one at the top-right of the
+header) as an overlay drawer with a shadow. Opening it marks the article `inert`,
+exactly like the mobile menu. Crossing back above `72rem` closes the drawer and
+restores the saved desktop preference.

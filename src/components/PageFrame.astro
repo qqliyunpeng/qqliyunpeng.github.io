@@ -57,6 +57,19 @@ const { hasSidebar } = Astro.locals.starlightRoute;
   const storageKey = "starlight-sidebar-collapsed";
   const root = document.documentElement;
   const toggle = document.querySelector<HTMLButtonElement>(".sidebar-collapse-toggle");
+  // Starlight 手机端的「三横」按钮，50~72rem 档由它接管左侧栏浮层
+  type MenuButtonElement = HTMLElement & { setExpanded?: (expanded: boolean) => void };
+  const menuButton = document.querySelector<MenuButtonElement>("starlight-menu-button");
+  // 右侧目录在 72rem 以下会被 Starlight 隐藏，左侧栏跟着一起收起
+  const wideQuery = window.matchMedia("(min-width: 72rem)");
+
+  let preferredCollapsed = true;
+  try {
+    preferredCollapsed = localStorage.getItem(storageKey) !== "false";
+  } catch {}
+
+  // 窄档一律收起：那里用手机端同款的「三横」按钮开合浮层，与桌面端的圆形按钮互斥
+  const isCollapsed = () => (wideQuery.matches ? preferredCollapsed : true);
 
   const renderState = (collapsed: boolean) => {
     if (collapsed) root.dataset.sidebarCollapsed = "true";
@@ -69,14 +82,21 @@ const { hasSidebar } = Astro.locals.starlightRoute;
     if (icon) icon.textContent = collapsed ? "›" : "‹";
   };
 
-  renderState(root.dataset.sidebarCollapsed === "true");
+  renderState(isCollapsed());
 
   toggle?.addEventListener("click", () => {
-    const collapsed = root.dataset.sidebarCollapsed !== "true";
-    renderState(collapsed);
+    const next = !preferredCollapsed;
+    preferredCollapsed = next;
     try {
-      localStorage.setItem(storageKey, String(collapsed));
+      localStorage.setItem(storageKey, String(next));
     } catch {}
+    renderState(next);
+  });
+
+  // 跨过 72rem 断点就切换机制：先关掉窄档的「三横」浮层，再按偏好恢复桌面态
+  wideQuery.addEventListener("change", () => {
+    menuButton?.setExpanded?.(false);
+    renderState(isCollapsed());
   });
 
   // “本页内容”是 Starlight TableOfContents 里的 h2。桌面端把它改造成和手机端
@@ -354,6 +374,21 @@ const { hasSidebar } = Astro.locals.starlightRoute;
       }
     }
 
+    /*
+     * 50~72rem：右侧目录已消失，左侧栏像手机端那样收进顶栏右上角的「三横」按钮，
+     * 由 starlight-menu-button 的 aria-expanded 控制浮层显隐（它和 .sidebar-pane
+     * 是兄弟节点，上面已有的 [aria-expanded='true'] ~ .sidebar-pane 规则会盖住这里）。
+     */
+    @media (min-width: 50rem) and (max-width: 71.999rem) {
+      .sidebar-pane {
+        --sl-sidebar-visibility: hidden;
+      }
+
+      .sidebar-collapse-toggle {
+        display: none;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .header,
       :global(mobile-starlight-toc nav),
@@ -369,8 +404,8 @@ const { hasSidebar } = Astro.locals.starlightRoute;
 <style is:global>
   /*
    * Starlight 在 Page.astro 中用未分层的 [data-has-sidebar] 规则把 --sl-content-inline-start
-   * 设为侧边栏宽度，分层（@layer starlight.core）里的收起态规则压不过它，导致收起后
-   * 正文左侧仍留出整条侧边栏的空白。这里用未分层规则把收起态改成只留一点左侧间距。
+   * 设为侧边栏宽度。这里用未分层规则把它统一成「侧栏宽度 + band 偏移」，且不随侧栏收起
+   * 而改变：正文的位置和宽度恒定，开合侧栏只让侧栏自己滑出视口，正文零位移。
    */
   @media (min-width: 50rem) {
     /*
@@ -407,12 +442,39 @@ const { hasSidebar } = Astro.locals.starlightRoute;
       --sl-content-inline-start: calc(var(--sl-sidebar-width) + var(--band-offset));
     }
 
-    .main-frame {
-      padding-inline-end: var(--band-offset);
+    /*
+     * 右侧目录在 72rem 以下由 Starlight 隐藏（.right-sidebar-panel 用 sl-hidden lg:sl-block）。
+     * 这一档左侧栏也一起收起，并且改成浮层：正文始终占满左右，开合浮层不再推挤正文。
+     */
+    @media (max-width: 71.999rem) {
+      /* 手机端那颗「三横」按钮在这一档也要显示，顶栏右组要让出它的位置 */
+      starlight-menu-button > button {
+        display: flex;
+      }
+
+      header.header {
+        padding-inline-end: calc(
+          var(--band-offset) + var(--sl-nav-gap) + var(--sl-nav-pad-x) + var(--sl-menu-button-size)
+        );
+      }
+
+      html[data-has-sidebar] {
+        --sl-content-inline-start: var(--band-offset);
+      }
+
+      /* 浮层由「三横」按钮开关，不再平移整条侧栏，也不再屏蔽点击 */
+      html[data-has-sidebar][data-sidebar-collapsed="true"] .sidebar-pane {
+        pointer-events: auto;
+        transform: none;
+      }
+
+      starlight-menu-button[aria-expanded="true"] ~ .sidebar-pane {
+        box-shadow: var(--sl-shadow-md);
+      }
     }
 
-    html[data-has-sidebar][data-sidebar-collapsed="true"] {
-      --sl-content-inline-start: calc(2rem + var(--band-offset));
+    .main-frame {
+      padding-inline-end: var(--band-offset);
     }
   }
 
