@@ -404,43 +404,57 @@ const { hasSidebar } = Astro.locals.starlightRoute;
 <style is:global>
   /*
    * Starlight 在 Page.astro 中用未分层的 [data-has-sidebar] 规则把 --sl-content-inline-start
-   * 设为侧边栏宽度。这里用未分层规则把它统一成「侧栏宽度 + band 偏移」，且不随侧栏收起
-   * 而改变：正文的位置和宽度恒定，开合侧栏只让侧栏自己滑出视口，正文零位移。
+   * 设为「侧栏宽度 + band 偏移」，且不随侧栏开合而改变：正文始终从左侧栏
+   * 的右边缘开始，开合侧栏只让侧栏自己显示或滑出视口，正文不再按顶栏居中。
    */
   @media (min-width: 50rem) {
     /*
      * 仿 fpga4fun：整站收进一个居中的「有效区域」，两侧留等宽空白。
      * 顶栏本身仍是满宽（背景和分隔线不断），只把内容缩进到带上。
      */
-    :root {
-      --site-max: 1600px;
-      --band-offset: max(0px, calc((100vw - var(--site-max)) / 2));
-    }
+     :root {
+       --site-max: 1600px;
+       /* 顶部标题栏参考 fpga4fun：268px 侧栏 + 960px 正文 + 96px 内边距。 */
+       --header-site-max: 1324px;
+       --band-offset: max(0px, calc((100vw - var(--site-max)) / 2));
+       --header-offset: max(0px, calc((100vw - var(--header-site-max)) / 2));
+       /* 让左侧列表文字起点与标题栏中的站点标题文字起点对齐。 */
+       --sidebar-offset: calc(
+         var(--header-offset) + var(--sl-nav-pad-x) - var(--sl-sidebar-pad-x)
+       );
+     }
 
-    header.header {
-      padding-inline: calc(var(--band-offset) + var(--sl-nav-pad-x));
-    }
+     header.header {
+       /* 背景铺满屏幕，内容区域按 fpga4fun 的 1324px 宽度居中。 */
+       padding-inline: calc(var(--header-offset) + var(--sl-nav-pad-x));
+     }
 
-    .sidebar-pane {
-      inset-inline-start: var(--band-offset);
-    }
+     .sidebar-pane {
+       inset-inline-start: var(--sidebar-offset);
+     }
 
-    .sidebar-collapse-toggle {
-      inset-inline-start: calc(var(--band-offset) + var(--sl-sidebar-width) - 0.875rem);
-    }
+     .sidebar-collapse-toggle {
+       inset-inline-start: calc(var(--sidebar-offset) + var(--sl-sidebar-width) - 0.875rem);
+     }
 
     /* 收起时整条侧栏要移到屏幕外，用多出来的一段 band 偏移补上，避免位置跳变 */
-    html[data-sidebar-collapsed="true"] .sidebar-pane {
-      transform: translateX(calc(-100% - var(--band-offset)));
-    }
+     html[data-sidebar-collapsed="true"] .sidebar-pane {
+       transform: translateX(calc(-100% - var(--sidebar-offset)));
+     }
 
-    html[data-sidebar-collapsed="true"] .sidebar-collapse-toggle {
-      inset-inline-start: calc(var(--band-offset) + 0.5rem);
-    }
+     html[data-sidebar-collapsed="true"] .sidebar-collapse-toggle {
+       inset-inline-start: calc(var(--sidebar-offset) + 0.5rem);
+     }
 
-    html[data-has-sidebar] {
-      --sl-content-inline-start: calc(var(--sl-sidebar-width) + var(--band-offset));
-    }
+     html[data-has-sidebar] {
+       /* 正文左边缘对齐左侧文件列表的右边界。 */
+       --sl-content-inline-start: calc(var(--sidebar-offset) + var(--sl-sidebar-width));
+     }
+
+     /* 左侧文件列表隐藏时，正文立即切换到隐藏后的对齐点。 */
+     html[data-has-sidebar][data-sidebar-collapsed="true"] {
+       --sl-content-inline-start: var(--sidebar-offset);
+     }
 
     /*
      * 50~75rem：正文优先保持固定的阅读宽度，左右侧栏都改成浮层/隐藏态，
@@ -452,30 +466,29 @@ const { hasSidebar } = Astro.locals.starlightRoute;
         display: flex;
       }
 
-      header.header {
-        padding-inline-end: calc(
-          var(--band-offset) + var(--sl-nav-gap) + var(--sl-nav-pad-x) + var(--sl-menu-button-size)
-        );
-      }
+       header.header {
+         padding-inline-end: calc(
+           var(--header-offset) + var(--sl-nav-gap) + var(--sl-nav-pad-x) + var(--sl-menu-button-size)
+         );
+       }
 
       html[data-has-sidebar] {
         --sl-content-inline-start: var(--band-offset);
         --sl-content-width: 60rem;
       }
 
-      .main-frame {
-        padding-inline-start: 0;
-      }
+       .main-frame {
+         padding-inline-start: 0;
+       }
 
-      /* 两侧都隐藏时，不能继续沿用 Starlight 的左侧栏占位。 */
-      html[data-sidebar-collapsed="true"]:not([data-toc-open]) .main-frame {
-        padding-inline-start: var(--band-offset);
-      }
+       /* 左侧文件列表在此断点变成浮层，正文同步切换到隐藏后的起点。 */
+       html[data-has-sidebar] .main-frame {
+         padding-inline-start: var(--band-offset);
+       }
 
-      html[data-sidebar-collapsed="true"]:not([data-toc-open]) .main-pane {
-        width: min(var(--sl-content-width), 100%);
-        margin-inline: auto;
-      }
+       html[data-has-sidebar] .sl-container {
+         margin-inline: 0;
+       }
 
       /* 浮层由「三横」按钮开关，不再平移整条侧栏，也不再屏蔽点击 */
       html[data-has-sidebar][data-sidebar-collapsed="true"] .sidebar-pane {
@@ -510,26 +523,28 @@ const { hasSidebar } = Astro.locals.starlightRoute;
         width: 100%;
       }
 
-      html[data-sidebar-collapsed="true"]:not([data-toc-open]) .main-pane {
-        width: min(var(--sl-content-width), 100%);
-        margin-inline: auto;
+     }
+
+      .main-frame {
+        padding-inline-end: var(--band-offset);
       }
 
-      html[data-sidebar-collapsed="true"]:not([data-toc-open]) .main-frame {
-        padding-inline-start: var(--band-offset);
+      .main-frame,
+      .main-pane,
+      .sl-container {
+        transition-property: padding-inline-start, margin-inline, width;
+        transition-duration: var(--sidebar-collapse-duration);
+        transition-timing-function: ease;
       }
 
-      /* 左右侧栏都收起时，覆盖 Starlight 默认保留的左侧栏宽度。 */
-      html[data-sidebar-collapsed="true"]:not([data-toc-open]) {
-        --sl-content-inline-start: var(--band-offset);
-      }
-    }
+     /* 右侧目录折叠时，文章从左侧列表右边缘开始，不再在主栏内居中。 */
+     @media (min-width: 72rem) {
+       html[data-has-sidebar][data-has-toc]:not([data-toc-open]) .sl-container {
+         margin-inline: 0;
+       }
+     }
 
-    .main-frame {
-      padding-inline-end: var(--band-offset);
-    }
-
-    /*
+     /*
      * 90rem 以上才同时保留正文、左栏和右栏。右侧目录收起时不再占列，
      * 让文章优先获得这部分空间；目录展开后恢复右侧列。右侧胶囊本身
      * 仍贴在文章区域右边，因此收起/展开不会丢失入口。
@@ -570,20 +585,7 @@ const { hasSidebar } = Astro.locals.starlightRoute;
         );
       }
 
-      /* 两侧都收起时，正文回到有效区域中央，两边留下相同空白。 */
-      html[data-sidebar-collapsed="true"]:not([data-toc-open]) {
-        --sl-content-inline-start: var(--band-offset);
-      }
-
-      html[data-sidebar-collapsed="true"]:not([data-toc-open]) .main-frame {
-        padding-inline-start: var(--band-offset);
-      }
-
-      html[data-sidebar-collapsed="true"]:not([data-toc-open]) .main-pane {
-        width: min(var(--sl-content-width), 100%);
-        margin-inline: auto;
-      }
-    }
+     }
   }
 
   /*
